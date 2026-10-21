@@ -28,7 +28,7 @@ public class Base64FileTool {
     private static final String DIRECTORY = "F:\\1";
     /** auto：自动编码/解码；encode：只编码；decode：只解码。 */
     private static final String MODE = "auto";
-    /** 每个编码输出文件的字节上限（包含头信息），默认 500 KB，可按需修改。 */
+    /** 每个编码输出文件的字节上限（包含头信息），可按需修改。 */
     static long maxEncodedFileSize = 100L * 1024;
 
     private static final String FORMAT_PREFIX = "BASE64FILETOOL:";
@@ -138,6 +138,10 @@ public class Base64FileTool {
         }
         int capacity = (int) (Math.min(limit - overhead, Integer.MAX_VALUE - 3L) / 4 * 4);
         int count = payload.isEmpty() ? 1 : (int) ((payload.length() + (long) capacity - 1) / capacity);
+        if (count > 99) {
+            throw new IOException("Two-digit fragment numbering supports at most 99 parts; "
+                    + "increase maxEncodedFileSize to reduce the part count");
+        }
         List<Path> created = new ArrayList<>();
         try {
             for (int index = 1; index <= count; index++) {
@@ -147,7 +151,7 @@ public class Base64FileTool {
                 String text = fragmentHeader(encodedName, batch, index, count, data.length, hash,
                         sha256(chunk.getBytes(StandardCharsets.US_ASCII))) + chunk + "\n";
                 String suffix = count == 1 ? ENCODED_SUFFIX
-                        : String.format(Locale.ROOT, ".part%010d-of-%010d%s", index, count, ENCODED_SUFFIX);
+                        : String.format(Locale.ROOT, ".part%02d-of-%02d%s", index, count, ENCODED_SUFFIX);
                 Path output = input.resolveSibling(name + suffix);
                 writeNew(output, text.getBytes(StandardCharsets.US_ASCII));
                 created.add(output);
